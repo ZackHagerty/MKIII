@@ -22,11 +22,11 @@
                 </div>
                 <div>
                     <strong>Last Active:</strong>
-                    <p>{{member.lastActive}}</p>
+                    <p>{{member.lastActive | timeago}}</p>
                 </div>
                 <div>
                     <strong>Member since:</strong>
-                    <p>{{member.created}}</p>
+                    <p>{{member.created | date: 'dd MMM yyyy'}}</p>
                 </div>
             </div>
             <div class="card-footer">
@@ -53,7 +53,7 @@
                         <input [(ngModel)]="member.country" type="text" name="country" class="form-control mx-2">
                     </div>
                 </form>
-
+               
             </tab>
             <tab heading='Edit Photos'>
                 <app-photo-editor [member]="member"></app-photo-editor>
@@ -61,4 +61,3 @@
         </tabset>
     </div>
 </div>
-
