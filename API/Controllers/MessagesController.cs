@@ -15,10 +15,11 @@ namespace API.Controllers
     public class MessagesController : BaseAPIController
     {
         private readonly IMapper _mapper;
-        private readonly IUnitOfWork _unitOfWork;
-        public MessagesController(IMapper mapper, IUnitOfWork unitOfWork)
+        private readonly IMessageRepository _messageRepository;
+
+        public MessagesController(IMapper mapper, IMessageRepository messageRepository)
         {
-            _unitOfWork = unitOfWork;
+            _messageRepository = messageRepository;
             _mapper = mapper;
         }
 
@@ -28,7 +29,7 @@ namespace API.Controllers
         {
             messageParams.Username = User.GetUsername();
 
-            var messages = await _unitOfWork.MessageRepository.GetMessagesForUser(messageParams);
+            var messages = _messageRepository.GetMessagesForUser(messageParams);
 
             Response.AddPaginationHeader(messages.CurrentPage, messages.PageSize,
                 messages.TotalCount, messages.TotalPages);
@@ -41,21 +42,21 @@ namespace API.Controllers
         {
             var username = User.GetUsername();
 
-            var message = await _unitOfWork.MessageRepository.GetMessage(id);
+            var message = await _messageRepository.GetMessage(id);
 
-            if (message.Sender.UserName != username && message.Recipient.UserName != username)
-                return Unauthorized();
+     //      if (message.Sender.UserName != username && message.Recipient.UserName != username)
+       //         return Unauthorized();
 
             if (message.Sender.UserName == username) message.SenderDeleted = true;
 
             if (message.Recipient.UserName == username) message.RecipientDeleted = true;
 
             if (message.SenderDeleted && message.RecipientDeleted)
-                _unitOfWork.MessageRepository.DeleteMessage(message);
+                _messageRepository.DeleteMessage(message);
 
-            if (await _unitOfWork.Complete()) return Ok();
+            return Ok();
 
-            return BadRequest("Problem deleting the message");
+            // return BadRequest("Problem deleting the message");
         }
     }
 }
