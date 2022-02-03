@@ -17,10 +17,12 @@ namespace API.Data
     public class LikesRepository : ILikesRepository
     {
         private readonly IConfiguration _configuration;
-        public LikesRepository(IConfiguration configuration)
+
+        private readonly DataContext _context;
+        public LikesRepository(IConfiguration configuration, DataContext context)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-
+            _context = context;
         }
 
         public async Task<UserLike> GetUserLike(int sourceUserId, int likedUserId) //DONE
@@ -120,17 +122,17 @@ namespace API.Data
                 appUser.City = reader.GetString("City");
                 appUser.Country = reader.GetString("Country"); 
 
-                likedUsers.Add( new UserLike
-                {
-                    SourceUserId = reader.GetInt32("SourceUserId"),
-                    LikedUserId = reader.GetInt32("LikedUserId")
-                });
+                // likedUsers.Add( new UserLike
+                // {
+                //     SourceUserId = reader.GetInt32("SourceUserId"),
+                //     LikedUserId = reader.GetInt32("LikedUserId")
+                // });
             }
             appUser.LikedUsers = likedUsers;
-            return appUser;
-            // return await _context.Users
-            //     .Include(x => x.LikedUsers)
-            //     .FirstOrDefaultAsync(x => x.Id == userId);
+            // return appUser;
+            return await _context.Users
+                .Include(x => x.LikedUsers)
+                .FirstOrDefaultAsync(x => x.Id == userId);
         }
     }
 } 
