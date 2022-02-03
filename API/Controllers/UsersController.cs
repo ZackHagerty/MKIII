@@ -23,7 +23,8 @@ namespace API.Controllers
         private readonly IPhotoService _photoService;
         private readonly IUserRepository _userRepository;
 
-        public UsersController(IMapper mapper, IPhotoService photoService, IUserRepository userRepository)
+        private readonly IPhotoRepository _photoRepository;
+        public UsersController(IMapper mapper, IPhotoService photoService, IUserRepository userRepository, IPhotoRepository photoRepository)
         {
     
             _photoService = photoService;
@@ -51,7 +52,8 @@ namespace API.Controllers
         [HttpGet("{username}", Name = "GetUser")]
         public async Task<ActionResult<MemberDTO>> GetUser(string username)
         {
-            return await _userRepository.GetMemberAsync(username);
+            var currentUsername = User.GetUsername();
+            return await _userRepository.GetMemberAsync(username, isCurrentUser: currentUsername == username);
         }
 
         [HttpPut]
@@ -83,15 +85,10 @@ namespace API.Controllers
                 PublicId = result.PublicId
             };
 
-            if (user.Photos.Count == 0)
-            {
-                photo.IsMain = true;
-            }
-
+    
             user.Photos.Add(photo);
 
-            
-            
+        
             return CreatedAtRoute("GetUser", new { username = user.UserName }, _mapper.Map<PhotoDTO>(photo));
             
         }
@@ -130,6 +127,8 @@ namespace API.Controllers
             }
 
             user.Photos.Remove(photo);
+
+            _photoRepository.RemovePhoto(photo);
 
             return Ok();
         }

@@ -19,11 +19,12 @@ namespace API.Data
     public class UserRepository : IUserRepository
     {
         private readonly IConfiguration _configuration;
-     
-        
+        private readonly DataContext _context;
+
         public UserRepository(IConfiguration configuration, DataContext context, IMapper mapper)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _context = context;
         }
 
         public List<PhotoDTO> GetPhotoDTO(string username) //DONE
@@ -51,7 +52,7 @@ namespace API.Data
             return photos;
 
         }
-        public async Task<MemberDTO> GetMemberAsync(string username) //DONE
+        public async Task<MemberDTO> GetMemberAsync(string username, bool? isCurrentUser) //DONE
         {
          var photos = GetPhotoDTO(username);
             using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
@@ -177,15 +178,15 @@ namespace API.Data
                 appUser.Id = reader.GetInt32("Id");
                 appUser.DateOfBirth = reader.GetDateTime("DateOfBirth");
                 appUser.UserName = reader.GetString("UserName");
-                appUser.KnownAs = reader.GetString("KnownAs");
+                appUser.KnownAs = (reader.IsDBNull("KnownAs")) ? null : reader.GetString("KnownAs");
                 appUser.Created = reader.GetDateTime("Created");
                 appUser.LastActive = reader.GetDateTime("LastActive");
-                appUser.Gender = reader.GetString("Gender");
+                appUser.Gender = (reader.IsDBNull("Gender")) ? null : reader.GetString("Gender");
                 appUser.Introduction = (reader.IsDBNull("Introduction")) ? null : reader.GetString("Introduction");
                 appUser.LookingFor = (reader.IsDBNull("LookingFor")) ? null : reader.GetString("LookingFor");
                 appUser.Interests = (reader.IsDBNull("Interests")) ? null : reader.GetString("Interests");
-                appUser.City = reader.GetString("City");
-                appUser.Country = reader.GetString("Country");
+                appUser.City = (reader.IsDBNull("City")) ? null : reader.GetString("City");
+                appUser.Country = (reader.IsDBNull("Country")) ? null : reader.GetString("Country");
             }
             reader.NextResult();
             while (reader.Read())
@@ -399,7 +400,7 @@ namespace API.Data
             using var reader = await command.ExecuteReaderAsync();
             while (reader.Read())
             {
-                Gender = reader.GetString("Gender");
+                Gender = (reader.IsDBNull("Gender")) ? null : reader.GetString("Gender");
             }
             
             return Gender;
@@ -440,6 +441,51 @@ namespace API.Data
             command.Parameters.AddWithValue("@Country", user.Country);
 
            command.ExecuteNonQuery();
+        }
+
+        public async Task<AppUser> GetUserByPhotoId(int photoId)
+        {
+            Console.WriteLine("GETTING USER BY PHOTO ID");
+            using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "dbo.GetUserByPhotoId";
+            command.CommandType = CommandType.StoredProcedure;
+            command.Parameters.AddWithValue("@photoId", photoId);
+
+            var appUser = new AppUser();
+            var PhotosList = new List<Photo>();
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (reader.Read())
+            {
+                appUser.Id = reader.GetInt32("Id");
+                appUser.DateOfBirth = reader.GetDateTime("DateOfBirth");
+                appUser.KnownAs = reader.GetString("KnownAs");
+                appUser.Created = reader.GetDateTime("Created");
+                appUser.LastActive = reader.GetDateTime("LastActive");
+                appUser.Gender = reader.GetString("Gender");
+                appUser.Introduction = (reader.IsDBNull("Introduction")) ? null : reader.GetString("Introduction");
+                appUser.LookingFor = (reader.IsDBNull("LookingFor")) ? null : reader.GetString("LookingFor");
+                appUser.Interests = (reader.IsDBNull("Interests")) ? null : reader.GetString("Interests");
+                appUser.City = reader.GetString("City");
+                appUser.Country = reader.GetString("Country");      
+                
+                PhotosList.Add(new Photo
+                {
+                Id = reader.GetInt32("photoId"),
+                Url = reader.GetString("Url"),
+                IsApproved = reader.GetBoolean("IsApproved"),
+                PublicId = null,
+                AppUser = appUser,
+                AppUserId = reader.GetInt32("AppUserId")
+                });
+
+            
+            }
+            appUser.Photos = PhotosList;
+
+            return appUser;
         }
     }
 }
